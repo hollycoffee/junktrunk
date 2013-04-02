@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Haystak App Store Search</title>
+    <link rel="stylesheet" href="css/themes/default/jquery.mobile-1.1.0.css" />
+    <link rel="stylesheet" href="css/themes/default/custom-ui.css" />
+    <link rel="stylesheet" href="css/jqm-docs.css" />
+    <script type='text/javascript' src="js/jquery.js"></script>
+    <script type='text/javascript' src="js/jqm-docs.js"></script>
+    <script type='text/javascript' src="js/jquery.mobile-1.1.0.min.js"></script>
+    <script type='text/javascript' src="js/applist.js"></script>
+    <script type="text/javascript" src="http://platform.linkedin.com/in.js">
+      api_key: iygeevpxza9t
+      scope: r_fullprofile r_network r_emailaddress
+      onLoad: onLinkedInLoad
+      authorize: true
+    </script>
+    <script type="text/javascript">
+
+        var industryTerm;
+        var interestsTerm;
+        var currentPositionTerm;
+        var previousPositionTerm;
+        var oldPositionTerm;
+        var skillsArray;
+        var interestsArray;
+
+
+        function onLinkedInLoad() {
+            IN.Event.on(IN, "auth", onLinkedInAuth);
+        }
+
+        function onLinkedInAuth() {
+            IN.API.Profile("me")
+          .fields("firstName", "lastName", "industry", "interests", "positions", "picture-url", "skills", "email-address", "location:(country:(code))")
+          .result(displayProfiles)
+          .error(displayProfilesErrors);
+        }
+
+        function logout() {
+            IN.User.logout(onLinkedInLogout);
+        }
+
+        function onLinkedInLogout() {
+            window.location = "splash.aspx";
+        }
+
+        function displayProfiles(profiles) {
+            var profilesDiv = document.getElementById("profiles");
+            var member = profiles.values[0];
+            industryTerm = member.industry;
+            skillsArray = member.skills;
+            interestsTerm = member.interests;
+            currentPositionTerm = member.positions.values[0].title;
+            previousPositionTerm = member.positions.values[1].title;
+            oldPositionTerm = member.positions.values[2].title;
+            parseGlobalProfile();
+
+            profilesDiv.innerHTML += "Hi, " + member.firstName + "!<br />Let's find you some useful apps, based on your professional needs.<br /><br />";
+            profilesDiv.innerHTML += "Industry: " + industryTerm + "<br />Current Job: " + currentPositionTerm + "<br />Previous Job: " + previousPositionTerm + "<br />3rd Job: " + oldPositionTerm + "<br />";
+            if (typeof skillsArray !== 'undefined') {
+                profilesDiv.innerHTML += "Skill 1: " + skillsArray.values[0].skill.name + "<br />Skill 2: " + skillsArray.values[1].skill.name + "<br />Skill 3: " + skillsArray.values[2].skill.name + "<br />";
+            }
+            if (typeof interestsArray !== 'undefined') {
+                profilesDiv.innerHTML += "Interest 1: " + interestsArray[0] + "<br />Interest 2: " + interestsArray[1] + "<br />Interest 3: " + interestsArray[2] + "<br />";
+            }
+        }
+
+        function parseGlobalProfile() {
+
+            removeGenericWords();
+            interestsArray = interestsTerm.split(',');
+
+        }
+
+        function removeGenericWords() {
+            if (currentPositionTerm.match("Senior")) {
+                currentPositionTerm = currentPositionTerm.replace("Senior", "");
+            }
+            if (currentPositionTerm.match("Principal")) {
+                currentPositionTerm = currentPositionTerm.replace("Principal", "");
+            }
+            if (currentPositionTerm.match("Lead")) {
+                currentPositionTerm = currentPositionTerm.replace("Lead", "");
+            }
+            if (currentPositionTerm.match("Head")) {
+                currentPositionTerm = currentPositionTerm.replace("Head", "");
+            }
+            if (previousPositionTerm.match("Senior")) {
+                previousPositionTerm = previousPositionTerm.replace("Senior", "");
+            }
+            if (previousPositionTerm.match("Principal")) {
+                previousPositionTerm = previousPositionTerm.replace("Principal", "");
+            }
+            if (previousPositionTerm.match("Lead")) {
+                previousPositionTerm = previousPositionTerm.replace("Lead", "");
+            }
+            if (previousPositionTerm.match("Head")) {
+                previousPositionTerm = previousPositionTerm.replace("Head", "");
+            }
+            if (oldPositionTerm.match("Senior")) {
+                oldPositionTerm = oldPositionTerm.replace("Senior", "");
+            }
+            if (oldPositionTerm.match("Principal")) {
+                oldPositionTerm = oldPositionTerm.replace("Principal", "");
+            }
+            if (oldPositionTerm.match("Lead")) {
+                oldPositionTerm = oldPositionTerm.replace("Lead", "");
+            }
+            if (oldPositionTerm.match("Head")) {
+                oldPositionTerm = oldPositionTerm.replace("Head", "");
+            }
+        }
+
+        function displayProfilesErrors(error) {
+            profilesDiv = document.getElementById("profiles");
+            profilesDiv.innerHTML = "<p>Failed to get your Linked In profile!</p>" + error.message;
+            console.log(error);
+        }
+
+        function searchQuery(term) {
+            if (term != null) {
+
+                switch (term) {
+                    case "industry":
+                        term = industryTerm;
+                        break;
+                    case "skill1":
+                        term = skillsArray.values[0].skill.name;
+                        break;
+                    case "skill2":
+                        term = skillsArray.values[1].skill.name;
+                        break;
+                    case "skill3":
+                        term = skillsArray.values[2].skill.name;
+                        break;
+                    case "interest1":
+                        term = interestsArray[0];
+                        break;
+                    case "interest2":
+                        term = interestsArray[1];
+                        break;
+                    case "interest3":
+                        term = interestsArray[2];
+                        break;
+                    case "position1":
+                        term = currentPositionTerm;
+                        break;
+                    case "position2":
+                        term = previousPositionTerm;
+                        break;
+                    case "position3":
+                        term = oldPositionTerm;
+                        break;
+                    default:
+                        break;
+                }
+
+                appArray = new Array();
+                showLoader('Loading Apps');
+                var request = { type: "GET", url: "http://itunes.apple.com/search?term=" + term + "&country=us&lang=en_us" + "&entity=software,iPadSoftware", processData: true, dataType: "jsonp", async: true };
+                var req = $.ajax(request);
+                req.done(function (response) {
+                    if (response.results.length > 0) {
+                        resetTable();
+                        for (var i = 0; i < response.results.length; i++) {
+                            var app = new App(response.results[i]);
+                            insertAppIntoTable(app);
+                            appArray[i] = app;
+                        }
+                    }
+                    else {
+                        resetTable();
+                        $('#appList').html($('#appList').html() + "<li data-readonly='true'>No matches found</li>");
+                        $('#appList').listview('refresh');
+                        $('html, body').animate({ scrollTop: $('#appList').offset().top }, 'fast');
+                    }
+                });
+
+                req.always(function () {
+                    hideLoader();
+                    $('html, body').animate({ scrollTop: $('#appList').offset().top }, 'fast');
+                });
+            }
+        }
+
+    </script>
+</head>
+<body>
+    <div id="mainPage" data-role="page" class="type-home">
+
+        <div data-role="content">
+            <div class="content-primary">
+
+            <center><img src="title_logo.jpg" /></center>
+
+                <!-- Displays a button to let the viewer authenticate -->
+                <script type="IN/Login"></script>
+
+                <nav>    
+                <form id='searchForm' name='searchForm' action="javascript:search()">
+                    <!-- Placeholder for the greeting -->
+                    <div id="profiles"></div>
+                    <br />
+                    - <a href="#" onclick="javascript:searchQuery('industry')">Industry Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('skill1')">Skill 1 Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('skill2')">Skill 2 Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('skill3')">Skill 3 Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('interest1')">Interests 1 Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('interest2')">Interests 2 Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('interest3')">Interests 3 Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('position1')">Apps related to your current position</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('position2')">Apps related to your previous position</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('position3')">Apps related to your 3rd position</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('expense report')">Expense Report Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('project management')">Project Management Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('travel')">Travel Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('flight tracking')">Flight Tracking Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('task manager')">Task Manager Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('business card reader')">Business Card Reader Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('note taking')">Note-Taking Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('webex')">Webex Virtual Meeting Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('business intelligence')">Business Intelligence Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('document scanner')">Document Scanner Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('dictation')">Speech-to-Text Dictation Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('edit microsoft office')">Microsoft Office Editor Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('cloud drive')">Cloud File Storage Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('document reader')">Document Reader Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('alarm clock')">Alarm Clock Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('restaurant reservations')">Restaurant Reservations Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('mileage log')">Mileage Log Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('form')">Form Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('itinerary')">Itinerary Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('web marketing app')">Web Marketing App Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('collaboration')">Collaboration Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('vpn')">VPN Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('cash flow and finance')">Cash Flow and Finance Search</a><br /><br />
+                    - <a href="#" onclick="javascript:searchQuery('credit card reader')">Credit Card Reader Search</a><br /><br />
+                    &nbsp;&nbsp;&nbsp;<a href="#" onclick="return logout();">(logout)</a><br /><br />
+                    
+                    <div id='searchBarDiv'>
+                    <input id='searchBar' type="search" name="search" value="" placeholder='Your own App Store search...' /></div>
+                </form>
+                        <ul id="appList" data-role="listview" data-inset="true" data-theme="c" data-dividertheme="b"></ul>    
+                </nav>
+                <br />
+                <br />
+            </div>
+        </div>
+
+    </div> 
+    <div data-role="page" id="detailsView" data-theme="b" data-url="detailsView" tabindex="0"
+        class="ui-page ui-body-c" style="min-height: 814px;">
+        <div data-role="header" class="ui-header ui-bar-b" role="banner">
+            <a href="#" data-icon="back" onclick="MOBILETrak.UI.silentLoading = false; MOBILETrak.UI.Navigation.closeEventDetails()"
+                data-iconpos="notext" data-rel='back' data-direction="reverse">Home</a>
+            <h1 class="ui-title" role="heading" aria-level="1">
+                <div id='detailsTitle'>App Name</div></h1>
+        </div>
+        <!-- /header -->
+        <div id='detailsContent' data-role="content" data-theme="c" class="ui-content ui-body-c" role="main"></div>
+        <!-- /content -->
+    </div>
+
+
+
+</body>
+</html>
